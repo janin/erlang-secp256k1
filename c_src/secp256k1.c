@@ -12,12 +12,15 @@ static ERL_NIF_TERM secp256k1_ecdsa_verify_nif(ErlNifEnv* env, int argc,
 static ERL_NIF_TERM secp256k1_ec_pubkey_create_nif(ErlNifEnv* env, int argc,
                                                    const ERL_NIF_TERM argv[]);
 
+static ERL_NIF_TERM secp256k1_ec_privkey_tweak_add_nif(ErlNifEnv* env, int argc,
+                                                       const ERL_NIF_TERM argv[]);
 
 static ErlNifFunc nif_funcs[] =
 {
     {"secp256k1_ecdsa_sign", 4, secp256k1_ecdsa_sign_nif},
     {"secp256k1_ecdsa_verify", 3, secp256k1_ecdsa_verify_nif},
-    {"secp256k1_ec_pubkey_create", 2, secp256k1_ec_pubkey_create_nif}
+    {"secp256k1_ec_pubkey_create", 2, secp256k1_ec_pubkey_create_nif},
+    {"secp256k1_ec_privkey_tweak_add", 2, secp256k1_ec_privkey_tweak_add_nif}
 };
 
 static ERL_NIF_TERM secp256k1_ecdsa_sign_nif(ErlNifEnv* env, int argc,
@@ -193,9 +196,48 @@ static ERL_NIF_TERM secp256k1_ec_pubkey_create_nif(ErlNifEnv* env, int argc,
   }
 
 
+
 }
 
+static ERL_NIF_TERM secp256k1_ec_privkey_tweak_add_nif(ErlNifEnv* env, int argc,
+                                                       const ERL_NIF_TERM argv[]) {
+  if (!enif_is_binary(env, argv[0])) {
+    return enif_make_badarg(env);
+  }
 
+  ErlNifBinary privkey;
+  if (!enif_inspect_binary(env, argv[0], &privkey)) {
+    return enif_make_badarg(env);
+  }
+  if (privkey.size != 32) {
+    return enif_make_badarg(env);
+  }
+
+  if (!enif_is_binary(env, argv[1])) {
+    return enif_make_badarg(env);
+  }
+
+  ErlNifBinary add;
+  if (!enif_inspect_binary(env, argv[1], &add)) {
+    return enif_make_badarg(env);
+  }
+
+  unsigned char *ret = malloc(privkey.size);
+  memcpy(ret, privkey.data, privkey.size);
+  int res = secp256k1_ec_privkey_tweak_add(ret, add.data);
+
+  if (res == 1) {
+    ErlNifBinary r;
+    enif_alloc_binary(privkey.size, &r);
+    memcpy(r.data, ret, privkey.size);
+    free(ret);
+    return enif_make_binary(env, &r);
+  } else {
+    free(ret);
+    return enif_make_atom(env, "error");
+  }
+}
+ 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
     secp256k1_start(SECP256K1_START_VERIFY | SECP256K1_START_SIGN);

@@ -1,6 +1,9 @@
 -module(secp256k1).
 
--export([secp256k1_ecdsa_sign/4, secp256k1_ecdsa_verify/3, secp256k1_ec_pubkey_create/2]).
+-export([secp256k1_ecdsa_sign/4,
+         secp256k1_ecdsa_verify/3,
+         secp256k1_ec_pubkey_create/2,
+         secp256k1_ec_privkey_tweak_add/2]).
 
 -on_load(init/0).
 
@@ -32,6 +35,10 @@ secp256k1_ecdsa_verify(_Msg32, _Sig, _Pubkey) ->
 secp256k1_ec_pubkey_create(_SecKey, _Compressed) ->
     ?nif_stub.
 
+secp256k1_ec_privkey_tweak_add(_PrivKey, _Add) ->
+    ?nif_stub.
+
+
 %% ===================================================================
 %% EUnit tests
 %% ===================================================================
@@ -42,5 +49,11 @@ sign_test() ->
   Msg32 = crypto:hash(sha256, <<"Hello">>),
   << _/binary >> = Sig = secp256k1_ecdsa_sign(Msg32, SecKey, default, <<>>),
   ?assertEqual(correct, secp256k1_ecdsa_verify(Msg32, Sig, secp256k1_ec_pubkey_create(SecKey, false))).
+
+tweak_test() ->
+  SecKey = <<128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128>>,
+  Add = <<1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1>>,
+  Expected = <<129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129>>,
+  ?assertEqual(Expected, secp256k1_ec_privkey_tweak_add(SecKey, Add)).
 
 -endif.
