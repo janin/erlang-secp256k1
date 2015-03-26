@@ -3,7 +3,11 @@
 -export([secp256k1_ecdsa_sign/4,
          secp256k1_ecdsa_verify/3,
          secp256k1_ec_pubkey_create/2,
-         secp256k1_ec_privkey_tweak_add/2]).
+         secp256k1_ec_privkey_tweak_add/2,
+         secp256k1_ec_pubkey_decompress/1,
+         secp256k1_ec_seckey_verify/1,
+         secp256k1_ec_pubkey_verify/1]).
+
 
 -on_load(init/0).
 
@@ -38,6 +42,14 @@ secp256k1_ec_pubkey_create(_SecKey, _Compressed) ->
 secp256k1_ec_privkey_tweak_add(_PrivKey, _Add) ->
     ?nif_stub.
 
+secp256k1_ec_pubkey_decompress(_PubKey) ->
+    ?nif_stub.
+
+secp256k1_ec_seckey_verify(_SecKey) ->
+    ?nif_stub.
+
+secp256k1_ec_pubkey_verify(_PubKey) ->
+    ?nif_stub.
 
 %% ===================================================================
 %% EUnit tests
@@ -56,4 +68,19 @@ tweak_test() ->
   Expected = <<129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129>>,
   ?assertEqual(Expected, secp256k1_ec_privkey_tweak_add(SecKey, Add)).
 
+verify_test() ->
+  SecKey = <<128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128>>,
+
+  PubKey = secp256k1_ec_pubkey_create(SecKey, false),
+  ?assertEqual(true, secp256k1_ec_seckey_verify(SecKey)),
+  ?assertEqual(true, secp256k1_ec_pubkey_verify(PubKey)).
+
+decompress_test() ->
+  SecKey = <<128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128>>,
+
+  PubKey = secp256k1_ec_pubkey_create(SecKey, false),
+  PubKeyComp = secp256k1_ec_pubkey_create(SecKey, true),
+
+  ?assertEqual(PubKey, secp256k1_ec_pubkey_decompress(PubKeyComp)).
+ 
 -endif.

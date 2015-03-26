@@ -15,12 +15,24 @@ static ERL_NIF_TERM secp256k1_ec_pubkey_create_nif(ErlNifEnv* env, int argc,
 static ERL_NIF_TERM secp256k1_ec_privkey_tweak_add_nif(ErlNifEnv* env, int argc,
                                                        const ERL_NIF_TERM argv[]);
 
+static ERL_NIF_TERM secp256k1_ec_pubkey_decompress_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]);
+ 
+static ERL_NIF_TERM secp256k1_ec_seckey_verify_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]);
+
+static ERL_NIF_TERM secp256k1_ec_pubkey_verify_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]);
+ 
 static ErlNifFunc nif_funcs[] =
 {
     {"secp256k1_ecdsa_sign", 4, secp256k1_ecdsa_sign_nif},
     {"secp256k1_ecdsa_verify", 3, secp256k1_ecdsa_verify_nif},
     {"secp256k1_ec_pubkey_create", 2, secp256k1_ec_pubkey_create_nif},
-    {"secp256k1_ec_privkey_tweak_add", 2, secp256k1_ec_privkey_tweak_add_nif}
+    {"secp256k1_ec_privkey_tweak_add", 2, secp256k1_ec_privkey_tweak_add_nif},
+    {"secp256k1_ec_pubkey_decompress", 1, secp256k1_ec_pubkey_decompress_nif},
+    {"secp256k1_ec_seckey_verify", 1, secp256k1_ec_seckey_verify_nif},
+    {"secp256k1_ec_pubkey_verify", 1, secp256k1_ec_pubkey_verify_nif}
 };
 
 static ERL_NIF_TERM secp256k1_ecdsa_sign_nif(ErlNifEnv* env, int argc,
@@ -235,6 +247,86 @@ static ERL_NIF_TERM secp256k1_ec_privkey_tweak_add_nif(ErlNifEnv* env, int argc,
   } else {
     free(ret);
     return enif_make_atom(env, "error");
+  }
+}
+ 
+static ERL_NIF_TERM secp256k1_ec_pubkey_decompress_nif(ErlNifEnv *env, int argc,
+                                                      const ERL_NIF_TERM argv[]) {
+  if (!enif_is_binary(env, argv[0])) {
+    return enif_make_badarg(env);
+  }
+
+  ErlNifBinary pubkey;
+  if (!enif_inspect_binary(env, argv[0], &pubkey)) {
+    return enif_make_badarg(env);
+  }
+  if (pubkey.size != 33) {
+    return enif_make_badarg(env);
+  }
+
+  unsigned char *ret = malloc(65);
+  int size = pubkey.size;
+
+  memcpy(ret, pubkey.data, pubkey.size);
+  int res = secp256k1_ec_pubkey_decompress(ret, &size);
+
+  if (res == 1) {
+    ErlNifBinary r;
+    enif_alloc_binary(size, &r);
+    memcpy(r.data, ret, size);
+    free(ret);
+    return enif_make_binary(env, &r);
+  } else {
+    free(ret);
+    return enif_make_atom(env, "error");
+  }
+}
+
+static ERL_NIF_TERM secp256k1_ec_seckey_verify_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]) {
+  if (!enif_is_binary(env, argv[0])) {
+    return enif_make_badarg(env);
+  }
+
+  ErlNifBinary seckey;
+  if (!enif_inspect_binary(env, argv[0], &seckey)) {
+    return enif_make_badarg(env);
+  }
+
+  if (seckey.size != 32) {
+    return enif_make_badarg(env);
+  }
+
+  unsigned int res = secp256k1_ec_seckey_verify(seckey.data);
+
+  if (res) {
+     return enif_make_atom(env, "true");
+  } else {
+     return enif_make_atom(env, "false");
+  }
+}
+
+static ERL_NIF_TERM secp256k1_ec_pubkey_verify_nif(ErlNifEnv *env, int argc,
+                                                   const ERL_NIF_TERM argv[]) {
+  if (!enif_is_binary(env, argv[0])) {
+    return enif_make_badarg(env);
+  }
+
+  ErlNifBinary pubkey;
+  if (!enif_inspect_binary(env, argv[0], &pubkey)) {
+    return enif_make_badarg(env);
+  }
+
+  if (pubkey.size != 33 && pubkey.size != 65) {
+    return enif_make_badarg(env);
+  }
+
+  unsigned int res = secp256k1_ec_pubkey_verify(pubkey.data, pubkey.size);
+
+  if (res) {
+     return enif_make_atom(env, "true");
+  } else {
+     return enif_make_atom(env, "false");
   }
 }
  
