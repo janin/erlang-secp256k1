@@ -4,6 +4,7 @@
          secp256k1_ecdsa_verify/3,
          secp256k1_ec_pubkey_create/2,
          secp256k1_ec_privkey_tweak_add/2,
+         secp256k1_ec_pubkey_tweak_add/2,
          secp256k1_ec_pubkey_decompress/1,
          secp256k1_ec_seckey_verify/1,
          secp256k1_ec_pubkey_verify/1]).
@@ -40,6 +41,9 @@ secp256k1_ec_pubkey_create(_SecKey, _Compressed) ->
     ?nif_stub.
 
 secp256k1_ec_privkey_tweak_add(_PrivKey, _Add) ->
+    ?nif_stub.
+
+secp256k1_ec_pubkey_tweak_add(_PubKey, _Add) ->
     ?nif_stub.
 
 secp256k1_ec_pubkey_decompress(_PubKey) ->
